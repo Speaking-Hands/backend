@@ -22,10 +22,10 @@ jobs:
 
       # Web Server deploy
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@main
+        uses: google-github-actions/deploy-cloudrun@v1
         with:
           source: src
-          service: speaking_hands_api
+          service: speaking-hands-api
           project_id: ${{ env.GCP_PROJECT_ID }}
           region: europe-west3
           timeout: 20m
