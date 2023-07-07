@@ -1,6 +1,4 @@
 import os
-import json
-import pandas as pd
 from functools import wraps
 from flask_cors import CORS, cross_origin
 from flask import Flask, request, make_response
