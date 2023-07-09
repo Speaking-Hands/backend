@@ -1,4 +1,4 @@
 flask
 gunicorn
-google-cloud-storage
 flask-cors
+google-cloud-storage

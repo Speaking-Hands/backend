@@ -2,8 +2,10 @@ import os
 from functools import wraps
 from flask_cors import CORS, cross_origin
 from flask import Flask, request, make_response
-from google.cloud import storage
 from datetime import timedelta
+from google.cloud import storage
+from google.auth import default
+from google.auth import transport
 
 app = Flask(__name__)
 
@@ -57,6 +59,11 @@ def upload():
     blob = bucket.blob(f"uploads/{video.filename}")
     blob.upload_from_string(video.read(), content_type=video.content_type)
 
+    # Signed url
+    credentials, _ = default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
+    if credentials.token is None:
+        credentials.refresh(transport.requests.Request())
+
     # Extraemos los metadatos del archivo
     blob = bucket.get_blob(f"uploads/{video.filename}")
     metadata = {
@@ -64,7 +71,7 @@ def upload():
         "content_type": blob.content_type,
         "size": f"{round((blob.size/1000000), 2)} Mb",
         "update": blob.updated,
-        "url": blob.generate_signed_url(version="v4", expiration=timedelta(minutes=1), method="GET")
+        "url": blob.generate_signed_url(version="v4", expiration=timedelta(minutes=1), method="GET", service_account_email=credentials.service_account_email, access_token=credentials.token)
     }
 
     return make_response(metadata, 200)
