@@ -47,11 +47,13 @@ def upload():
     Upload video API URL
     """   
     # Comprobamos
+    video = request.files["video"]
+
     if 'video' not in request.files or request.files['video'].filename == '':
         return make_response({"error": "You must send a video with the next tag: 'video'"}, 400)
-
-    #Cogemos el archivo
-    video = request.files["video"]
+    
+    if video.content_type.split("/")[0] != "video":
+        return make_response({"error": "File uploaded is not a video"}, 400)
 
     # Guardamos en bucket de GCP
     storage_client = storage.Client()
