@@ -46,15 +46,17 @@ def upload():
     """
     Upload video API URL
     """   
-    # Comprobamos
-    video = request.files["video"]
-
+    # Comprobamos video
     if 'video' not in request.files or request.files['video'].filename == '':
         return make_response({"error": "You must send a video with the next tag: 'video'"}, 400)
     
+    video = request.files["video"]
+
     if video.content_type.split("/")[0] != "video":
         return make_response({"error": "File uploaded is not a video"}, 400)
 
+
+    # --------------------------------------- TEMPORALMENTE NO ÚTIL -------------------------------------------------#
     # Guardamos en bucket de GCP
     storage_client = storage.Client()
     bucket = storage_client.get_bucket("speakinghands_cloudbuild")
