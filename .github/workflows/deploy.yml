@@ -29,4 +29,4 @@ jobs:
           project_id: ${{ env.GCP_PROJECT_ID }}
           region: europe-west3
           timeout: 20m
-          flags: "--allow-unauthenticated --platform=managed --service-account=speakinhands-main@speakinghands.iam.gserviceaccount.com --memory=2Gi"
+          flags: "--allow-unauthenticated --platform=managed --service-account=speakinhands-main@speakinghands.iam.gserviceaccount.com --memory=4Gi"

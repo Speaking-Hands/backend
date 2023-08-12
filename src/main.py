@@ -107,7 +107,7 @@ def parquet():
 
     return make_response(result, 200)
 
-@app.route("/translate", methods=["POST"])
+@app.route("/predict", methods=["POST"])
 @cross_origin()
 @login_required
 def translate():
@@ -149,7 +149,7 @@ def translate():
     prediction_str = "No human landmarks detected on uploaded video!" if prediction_str == "4404" else prediction_str
 
     result = {
-        "translate": prediction_str
+        "prediction": prediction_str
     }
 
     return make_response(result, 200)
