@@ -82,10 +82,9 @@ def parquet():
         parquet_id = uuid.uuid4().hex
 
         with mp_holistic.Holistic( static_image_mode=False, model_complexity=1) as holistic:
-            
+            print(f"Procesando '{parquet_id}'. Número de frames a procesar: {total_frames}")
             for frame_num in range(total_frames):
-                # Process frame
-                print(f"Procesando frame {frame_num + 1} / {total_frames}")
+                # Procesamos frame
                 ret, frame = cap.read()
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = holistic.process(frame_rgb)
@@ -95,6 +94,7 @@ def parquet():
             parquet = pd.concat(parquet_row_list, axis=0)
 
             # Guardamos en GCP
+            print(f"'{parquet_id}' procesado correctamente! Guardando parquet")
             client = storage.Client()
             bucket = client.get_bucket('speakinghands_cloudbuild')
             bucket.blob(f'parquets/{parquet_id}.parquet').upload_from_string(parquet.to_parquet())
@@ -145,7 +145,7 @@ def translate():
     output = prediction_fn(inputs=frames)
     prediction_str = "".join([rev_character_map.get(s, "") for s in np.argmax(output["outputs"], axis=1)])
     
-    # No faces detected
+    # Humanos no detectados
     prediction_str = "No human landmarks detected on uploaded video!" if prediction_str == "4404" else prediction_str
 
     result = {
