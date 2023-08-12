@@ -54,7 +54,7 @@ def main():
 @app.route("/transform", methods=["POST"])
 @cross_origin()
 @login_required
-def parquet():
+def transform():
     """
     Upload video and transform it into parquet
     """   
@@ -110,9 +110,9 @@ def parquet():
 @app.route("/predict", methods=["POST"])
 @cross_origin()
 @login_required
-def translate():
+def predict():
     """
-    Translate selected parquet
+    Predict result for selected parquet
     """      
     # Comprobamos entrada
     if "parquet" not in list(request.form.keys()):
