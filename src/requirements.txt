@@ -1,7 +1,6 @@
 flask
 gunicorn
 flask-cors
-google-cloud-storage
 mediapipe
 opencv-python
 pandas
@@ -9,4 +8,3 @@ numpy
 pyarrow
 fastparquet
 tensorflow
-gcsfs

@@ -1,7 +1,6 @@
 from utils.functions import *
 from model import *
 import os
-import uuid
 import cv2
 import json
 import tempfile
@@ -10,10 +9,6 @@ import tensorflow as tf
 from functools import wraps
 from flask_cors import CORS, cross_origin
 from flask import Flask, request, make_response
-from datetime import timedelta
-from google.cloud import storage
-from google.auth import default
-from google.auth import transport
 from pathlib import Path
 
 
@@ -51,10 +46,10 @@ def main():
     return make_response("SpeakingHands API working fine! :)", 200)
 
 
-@app.route("/transform", methods=["POST"])
+@app.route("/predict", methods=["POST"])
 @cross_origin()
 @login_required
-def transform():
+def predict():
     """
     Upload video and transform it into parquet
     """   
@@ -67,6 +62,7 @@ def transform():
     if video.content_type.split("/")[0] != "video":
         return make_response({"error": "File uploaded is not a video"}, 400)
     
+    print(f"Realizando predicción del video: {video.filename}")
     with tempfile.TemporaryDirectory() as td:
 
         # Guardamos video temporalmente
@@ -79,10 +75,9 @@ def transform():
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         parquet_row_list = []
-        parquet_id = uuid.uuid4().hex
 
         with mp_holistic.Holistic( static_image_mode=False, model_complexity=1) as holistic:
-            print(f"Procesando '{parquet_id}'. Número de frames a procesar: {total_frames}")
+            print(f"Número de frames a procesar: {total_frames}")
             for frame_num in range(total_frames):
                 # Procesamos frame
                 ret, frame = cap.read()
@@ -90,48 +85,19 @@ def transform():
                 results = holistic.process(frame_rgb)
                 frame_row_result = create_frame_row(frame_num, results)
                 parquet_row_list.append(frame_row_result)
+                print(f"{frame_num} / {total_frames} frames procesados!") if frame_num % 50 == 0 else None
 
             parquet = pd.concat(parquet_row_list, axis=0)
 
-            # Guardamos en GCP
-            print(f"'{parquet_id}' procesado correctamente! Guardando parquet")
-            client = storage.Client()
-            bucket = client.get_bucket('speakinghands_cloudbuild')
-            bucket.blob(f'parquets/{parquet_id}.parquet').upload_from_string(parquet.to_parquet())
-
         cap.release() 
-
-    result = {
-        "parquet": parquet_id
-    }
-
-    return make_response(result, 200)
-
-@app.route("/predict", methods=["POST"])
-@cross_origin()
-@login_required
-def predict():
-    """
-    Predict result for selected parquet
-    """      
-    # Comprobamos entrada
-    if "parquet" not in list(request.form.keys()):
-        return make_response({"error": "Invalid request params. Expected only 'parquet' entry"}, 400)
-
-    if (len(list(request.form.keys())) + len(list(request.files.keys()))) > 1:
-        return make_response({"error": "You can't send more than 1 request param. Expected only 'parquet' entry"}, 400)
 
     # Leer el archivo 'inference_args.json' para obtener las columnas seleccionadas
     with open(str(os.path.abspath("model/inference_args.json")), 'r') as f:
         inference_args = json.load(f)
     selected_columns = inference_args['selected_columns']
     
-    # Frames video (parquet GCP)
-    try:
-        parquet_id = request.form.get("parquet")
-        frames = pd.read_parquet(f"gs://speakinghands_cloudbuild/parquets/{parquet_id}.parquet", columns=selected_columns).astype(np.float32)
-    except:
-        return make_response({"error": f"Parquet '{parquet_id}' not found"}, 404)
+    # Frames video (parquet)
+    frames = parquet.copy()[selected_columns].astype(np.float32)
 
     # Crear una instancia de la clase TFLiteModel
     interpreter = tf.lite.Interpreter(str(os.path.abspath("model/model.tflite")))
@@ -147,11 +113,11 @@ def predict():
     
     # Humanos no detectados
     prediction_str = "No human landmarks detected on uploaded video!" if prediction_str == "4404" else prediction_str
-
+    print(f"Predicción obtenida del video: {prediction_str}")
+    
     result = {
         "prediction": prediction_str
     }
-
     return make_response(result, 200)
 
 
