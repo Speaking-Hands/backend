@@ -51,7 +51,7 @@ def main():
     return make_response("SpeakingHands API working fine! :)", 200)
 
 
-@app.route("/parquet", methods=["POST"])
+@app.route("/transform", methods=["POST"])
 @cross_origin()
 @login_required
 def parquet():
