@@ -92,34 +92,32 @@ def predict():
 
     # -- Predecimos los resultados utilizando modelo --
 
-    if not parquet.loc[:, parquet.columns != 'frame'].isnull().values.all(): 
-        
-        # Leer el archivo 'inference_args.json' para obtener las columnas seleccionadas
-        with open(str(os.path.abspath("model/inference_args.json")), 'r') as f:
-            inference_args = json.load(f)
-        selected_columns = inference_args['selected_columns']
-        
-        # Frames video (parquet)
-        frames = parquet.copy()[selected_columns].astype(np.float32)
-
-        # Crear una instancia de la clase TFLiteModel
-        interpreter = tf.lite.Interpreter(str(os.path.abspath("model/model.tflite")))
-
-        with open(str(os.path.abspath("model/character_to_prediction_index.json")), "r") as f:
-            character_map = json.load(f)
-        rev_character_map = {j:i for i,j in character_map.items()}
-
-        # Predicción
-        prediction_fn = interpreter.get_signature_runner("serving_default")
-        output = prediction_fn(inputs=frames)
-        prediction_str = "".join([rev_character_map.get(s, "") for s in np.argmax(output["outputs"], axis=1)])
-        
-        # Procesar resultado (Comprobar humanos y separador de palabras)
-        prediction_str = " ".join(wordninja.split(prediction_str))
+    # Leer el archivo 'inference_args.json' para obtener las columnas seleccionadas
+    with open(str(os.path.abspath("model/inference_args.json")), 'r') as f:
+        inference_args = json.load(f)
+    selected_columns = inference_args['selected_columns']
     
-    else: 
-        # No hay humanos detectados (all dataframe is null)
-        prediction_str = "No human landmarks detected on uploaded video!"
+    # Frames video (parquet)
+    frames = parquet.copy()[selected_columns].astype(np.float32)
+
+    # Crear una instancia de la clase TFLiteModel
+    interpreter = tf.lite.Interpreter(str(os.path.abspath("model/model.tflite")))
+
+    with open(str(os.path.abspath("model/character_to_prediction_index.json")), "r") as f:
+        character_map = json.load(f)
+    rev_character_map = {j:i for i,j in character_map.items()}
+
+    # Predicción
+    prediction_fn = interpreter.get_signature_runner("serving_default")
+    output = prediction_fn(inputs=frames)
+    prediction_str = "".join([rev_character_map.get(s, "") for s in np.argmax(output["outputs"], axis=1)])
+    
+    # Procesar resultado 
+    prediction_str = " ".join(wordninja.split(prediction_str))
+    
+    # No humans detected
+    prediction_str = "No human landmarks detected on uploaded video!" if prediction_str in ["2 a e a roe", "a roe"] else prediction_str
+
 
     print(f"Predicción obtenida del video: {prediction_str}")
     result = {
