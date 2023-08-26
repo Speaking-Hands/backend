@@ -3,7 +3,8 @@ import numpy as np
 
 def create_frame_row(frame_num, results):
     """
-    frame, x_face_0, x_face_1, x_face_2...y_face_1, y_face_2...x_right_hand_1...x_left_hand_1...x_pose_1
+    frame, x_face_0, x_face_1, x_face_2...y_face_0, y_face_1...x_right_hand_0...x_left_hand_0...x_pose_0
+    0    ,  value  ,   value ,   value ... value  ,   value ...  value       ...    value    ...  value
     """
     # Frame row object for parquet
     frame_row = pd.DataFrame()
@@ -15,7 +16,7 @@ def create_frame_row(frame_num, results):
     frame_zones = {
         "face": {
             "size": 468,
-            "results": results.face_landmarks
+            "results": results.face_landmarks # x, y and z
         },
         "right_hand": {
             "size": 21,
