@@ -6,6 +6,7 @@ import json
 import tempfile
 import mediapipe as mp
 import tensorflow as tf
+import wordninja
 from functools import wraps
 from flask_cors import CORS, cross_origin
 from flask import Flask, request, make_response
@@ -50,10 +51,8 @@ def main():
 @cross_origin()
 @login_required
 def predict():
-    """
-    Upload video and transform it into parquet
-    """   
-    # Comprobamos video
+
+    # -- Comprobamos video --
     if 'video' not in request.files or request.files['video'].filename == '':
         return make_response({"error": "You must send a video with the next tag: 'video'"}, 400)
     
@@ -65,31 +64,33 @@ def predict():
     print(f"Realizando predicción del video: {video.filename}")
     with tempfile.TemporaryDirectory() as td:
 
-        # Guardamos video temporalmente
+        # -- Recuperamos todos los frames del video --
         temp_filename = Path(td) / 'uploaded_video'
         request.files['video'].save(temp_filename)
 
-        # Transformamos a parquet
         mp_holistic = mp.solutions.holistic
         cap = cv2.VideoCapture(str(temp_filename))
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         parquet_row_list = []
 
-        with mp_holistic.Holistic( static_image_mode=False, model_complexity=1) as holistic:
+        with mp_holistic.Holistic(static_image_mode=False, model_complexity=1) as holistic:
             print(f"Número de frames a procesar: {total_frames}")
+            # -- Calculamos puntos de referencia --
             for frame_num in range(total_frames):
-                # Procesamos frame
                 ret, frame = cap.read()
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = holistic.process(frame_rgb)
                 frame_row_result = create_frame_row(frame_num, results)
                 parquet_row_list.append(frame_row_result)
                 print(f"{frame_num} / {total_frames} frames procesados!") if frame_num % 50 == 0 else None
-
+            
+            # -- Transformamos a "parquet" (creamos el dataframe directamente con los resultados de todos los frames) --
             parquet = pd.concat(parquet_row_list, axis=0)
 
         cap.release() 
+
+    # -- Predecimos los resultados utilizando modelo --
 
     # Leer el archivo 'inference_args.json' para obtener las columnas seleccionadas
     with open(str(os.path.abspath("model/inference_args.json")), 'r') as f:
@@ -111,8 +112,8 @@ def predict():
     output = prediction_fn(inputs=frames)
     prediction_str = "".join([rev_character_map.get(s, "") for s in np.argmax(output["outputs"], axis=1)])
     
-    # Humanos no detectados
-    prediction_str = "No human landmarks detected on uploaded video!" if prediction_str == "4404" else prediction_str
+    # Procesar resultado (Comprobar humanos y separador de palabras)
+    prediction_str = "No human landmarks detected on uploaded video!" if "-aero" in prediction_str else " ".join(wordninja.split(prediction_str))
     print(f"Predicción obtenida del video: {prediction_str}")
     
     result = {

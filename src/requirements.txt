@@ -8,3 +8,4 @@ numpy
 pyarrow
 fastparquet
 tensorflow
+wordninja
