@@ -112,8 +112,9 @@ def predict():
     output = prediction_fn(inputs=frames)
     prediction_str = "".join([rev_character_map.get(s, "") for s in np.argmax(output["outputs"], axis=1)])
     
-    # Procesar resultado: Detector de humanos y palabras
-    prediction_str = "No human landmarks detected on uploaded video!" if prediction_str in ["sa ca", "sa co", "s a ca", "s a co"] else " ".join(wordninja.split(prediction_str))
+    # Procesar resultado: Detector de palabras y humanos
+    prediction_str = "  ".join(wordninja.split(prediction_str))
+    prediction_str = "No human landmarks detected on uploaded video!" if prediction_str in ["sa ca", "sa co", "s a ca", "s a co"] else prediction_str
     print(f"Predicción obtenida del video: {prediction_str}")
 
     result = {
